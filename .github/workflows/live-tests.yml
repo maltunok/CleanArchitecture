@@ -1,0 +1,29 @@
+name: Live Tests
+on:
+  deployment_status:
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success'
+    defaults:
+      run:
+        working-directory: /tests/WebUI.AcceptanceTests
+    steps:
+    - name: Delayed start # Give the app service a chance to start.
+      run: sleep 30s
+      shell: bash
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+    - name: Restore
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    - name: Install Playwright
+      run: pwsh bin/Release/net6.0/playwright.ps1 install
+    - name: Test
+      run: dotnet test --configuration Release
+      env:
+        BaseUrl: ${{ github.event.deployment_status.environment_url }}
